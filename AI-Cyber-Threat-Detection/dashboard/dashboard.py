@@ -62,7 +62,7 @@ with st.sidebar:
     st.divider()
     status = st.empty()
     status.markdown("🟢 **System: Online**")
-    auto_refresh = st.toggle("Live Monitoring", value=True)
+    auto_refresh = st.toggle("Live Monitoring", value=False)
     refresh_rate = st.slider("Interval (s)", 1, 10, 3)
     st.divider()
     with st.expander("Intelligence Specs"):
@@ -80,7 +80,7 @@ df = pd.DataFrame(
 
 # Demo fallback if API returns no data
 if df.empty:
-    st.warning("⚠️ Live traffic not detected. Showing demo threat intelligence data.")
+    st.info("Demo Mode: Displaying simulated cyber threat intelligence.")
 
     df = pd.DataFrame([
         ["2026-03-16 10:21","203.0.113.5","DDoS","High",0.92,"Port 443 flood",0],
