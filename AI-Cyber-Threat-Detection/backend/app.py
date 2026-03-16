@@ -21,6 +21,7 @@ DATASET_PATH = os.path.join(BASE_DIR, "..", "dataset", "cleaned_cicids.csv")
 model = None
 anomaly_model = None
 scaler = None
+autonomous_defense = True
 
 def load_models():
     global model, anomaly_model, scaler
@@ -57,6 +58,15 @@ def fetch_logs(): return jsonify(get_logs(limit=100))
 @app.route("/blacklist", methods=["GET"])
 def fetch_blacklist(): return jsonify(get_blacklist())
 
+@app.route("/defense", methods=["GET", "POST"])
+def defense_control():
+    global autonomous_defense
+    if request.method == "POST":
+        data = request.json
+        autonomous_defense = data.get("status", True)
+        return jsonify({"status": "ok", "defense_mode": autonomous_defense})
+    return jsonify({"defense_mode": autonomous_defense})
+
 @app.route("/predict", methods=["POST"])
 def predict():
     if model is None: return jsonify({"error": "Init..."}), 500
@@ -78,7 +88,7 @@ def predict():
         
         summary = f"Top Contributors: {', '.join(feature_importance)}" if feature_importance else "Baseline Traffic"
 
-        if severity == "High" or base_risk > 0.8:
+        if autonomous_defense and (severity == "High" or base_risk > 0.8):
             blacklist_ip(source_ip, f"AI-Block: {prediction}")
 
         log_prediction(source_ip, prediction, severity, base_risk, summary, is_anomaly)
