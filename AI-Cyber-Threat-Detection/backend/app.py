@@ -117,11 +117,19 @@ def predict():
             severity = "High"
             base_risk = 0.85
             
-        # 6. Automated Mitigation (Response)
+        # 6. Explainable AI (XAI) - Identify top contributors
+        feature_importance = []
+        if prediction != "BENIGN":
+            # Simple heuristic: find features furthest from mean (scaled)
+            diffs = np.abs(X_scaled[0])
+            top_indices = np.argsort(diffs)[-3:][::-1]
+            feature_importance = [model.feature_names_in_[i] for i in top_indices]
+
+        # 7. Automated Mitigation (Response)
         if severity == "High" or base_risk > 0.8:
             blacklist_ip(source_ip, f"Automatic Block: High Threat ({prediction})")
 
-        summary = f"Port: {data.get('Destination Port')} | Flow: {data.get('Flow Duration')}"
+        summary = f"Top Features: {', '.join(feature_importance)}" if feature_importance else f"Port: {data.get('Destination Port')} | Flow: {data.get('Flow Duration')}"
         
         # Log to Database
         log_prediction(source_ip, prediction, severity, base_risk, summary, is_anomaly)
@@ -135,7 +143,8 @@ def predict():
             "severity": severity,
             "risk_score": base_risk,
             "source_ip": source_ip,
-            "is_anomaly": bool(is_anomaly)
+            "is_anomaly": bool(is_anomaly),
+            "top_features": feature_importance
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

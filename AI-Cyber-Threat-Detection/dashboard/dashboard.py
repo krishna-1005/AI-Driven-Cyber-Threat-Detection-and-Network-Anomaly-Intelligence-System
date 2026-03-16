@@ -18,26 +18,117 @@ st.set_page_config(
 # --- PREMIUM STYLING ---
 st.markdown("""
 <style>
-    .stApp { background-color: #0e1117; color: #e0e0e0; }
-    section[data-testid="stSidebar"] { background-color: #161b22 !important; border-right: 1px solid #30363d; }
-    h1, h2, h3 { color: #58a6ff !important; font-family: 'Inter', sans-serif; font-weight: 700; }
-    div[data-testid="stMetricValue"] { font-size: 2rem !important; color: #ffffff !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    
+    .stApp { 
+        background: radial-gradient(circle at top right, #1a1f2e, #0e1117); 
+        color: #e0e0e0;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Sidebar Styling */
+    section[data-testid="stSidebar"] { 
+        background-color: rgba(22, 27, 34, 0.95) !important; 
+        border-right: 1px solid rgba(88, 166, 255, 0.2); 
+        backdrop-filter: blur(10px);
+    }
+    
+    /* Header & Titles */
+    h1, h2, h3 { 
+        color: #58a6ff !important; 
+        font-family: 'Inter', sans-serif; 
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+    
+    /* Metric Containers (Glassmorphism) */
+    div[data-testid="stMetricValue"] { 
+        font-size: 2.2rem !important; 
+        color: #ffffff !important; 
+        font-weight: 700 !important;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
     .metric-container {
-        background: #161b22; padding: 20px; border-radius: 12px; border: 1px solid #30363d;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s;
+        background: rgba(22, 27, 34, 0.6); 
+        padding: 24px; 
+        border-radius: 16px; 
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); 
+        backdrop-filter: blur(4px);
+        transition: all 0.3s ease;
+        margin-bottom: 10px;
     }
-    .metric-container:hover { border-color: #58a6ff; transform: translateY(-2px); }
+    
+    .metric-container:hover { 
+        border-color: rgba(88, 166, 255, 0.5); 
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px 0 rgba(88, 166, 255, 0.15);
+    }
+
+    /* Live Feed Styling */
+    .stDataFrame {
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    /* Threat & Anomaly Cards */
+    .threat-card, .anomaly-card {
+        padding: 18px; 
+        border-radius: 12px; 
+        margin-bottom: 15px;
+        border: 1px solid;
+        backdrop-filter: blur(8px);
+    }
+    
     .threat-card {
-        padding: 15px; border-radius: 10px; margin-bottom: 12px;
-        background: rgba(255, 75, 75, 0.1); border: 1px solid rgba(255, 75, 75, 0.3); border-left: 5px solid #ff4b4b;
+        background: rgba(255, 75, 75, 0.05); 
+        border-color: rgba(255, 75, 75, 0.3); 
+        border-left: 6px solid #ff4b4b;
     }
+    
     .anomaly-card {
-        padding: 15px; border-radius: 10px; margin-bottom: 12px;
-        background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); border-left: 5px solid #ffa500;
+        background: rgba(255, 165, 0, 0.05); 
+        border-color: rgba(255, 165, 0, 0.3); 
+        border-left: 6px solid #ffa500;
     }
-    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
-    .stTabs [data-baseweb="tab"] { height: 50px; color: #8b949e; }
-    .stTabs [aria-selected="true"] { color: #58a6ff !important; border-bottom: 2px solid #58a6ff !important; }
+
+    /* Tabs Styling */
+    .stTabs [data-baseweb="tab-list"] { 
+        gap: 30px; 
+        background-color: transparent;
+    }
+    
+    .stTabs [data-baseweb="tab"] { 
+        height: 55px; 
+        color: #8b949e; 
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .stTabs [aria-selected="true"] { 
+        color: #58a6ff !important; 
+        border-bottom: 3px solid #58a6ff !important; 
+    }
+
+    /* Pulse Animation for Online Status */
+    .status-pulse {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #00ff00;
+        box-shadow: 0 0 0 0 rgba(0, 255, 0, 1);
+        animation: pulse-green 2s infinite;
+        margin-right: 8px;
+    }
+
+    @keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -104,6 +195,13 @@ if df.empty:
 
 # --- TOP METRICS ---
 st.title("🛡️ Sentinel Intelligence Dashboard")
+
+# Real-time Critical Alerts
+high_threats = df[df["Severity"] == "High"].head(3)
+for _, threat in high_threats.iterrows():
+    if (datetime.now() - datetime.strptime(threat['Time'], '%Y-%m-%d %H:%M:%S')).seconds < 10:
+        st.toast(f"🚨 CRITICAL: {threat['Attack Type']} from {threat['Source IP']}", icon="🔥")
+
 m1, m2, m3, m4 = st.columns(4)
 with m1:
     st.markdown('<div class="metric-container">', unsafe_allow_html=True)
@@ -169,11 +267,13 @@ with tab2:
         st.success("No behavioral anomalies detected.")
     else:
         for _, row in anomalies.iterrows():
+            # Use XAI data from Summary if available
+            reason = row['Summary'] if "Top Features" in row['Summary'] else "Unusual packet pattern identified via Unsupervised Learning."
             st.markdown(f"""
             <div class="anomaly-card">
                 <strong>⚠️ Behavioral Anomaly Detected</strong> | Risk: {row['Risk Score']}<br>
                 Source: {row['Source IP']} | Time: {row['Time']} | Type: {row['Attack Type']}<br>
-                <em>System Analysis: Unusual packet pattern identified via Unsupervised Learning.</em>
+                <em>System Analysis: {reason}</em>
             </div>
             """, unsafe_allow_html=True)
 
@@ -187,7 +287,17 @@ with tab3:
         st.info("No active IP blocks.")
 
 with tab4:
+    st.subheader("System Activity Logs")
     st.dataframe(df, use_container_width=True, hide_index=True)
+    
+    # Export feature for Forensics
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Export Logs for Forensic Audit",
+        data=csv,
+        file_name=f"sentinel_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        mime="text/csv",
+    )
 
 if auto_refresh:
     st_autorefresh(interval=refresh_rate * 1000, key="datarefresh")
