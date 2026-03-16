@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
+from streamlit_autorefresh import st_autorefresh
 
 # --- CONFIGURATION ---
 st.set_page_config(
@@ -41,7 +42,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- DATA FETCHING ---
-API_BASE = "http://localhost:5000"
+API_BASE = API_BASE = "http://localhost:5000"
 
 def get_logs():
     try:
@@ -160,4 +161,4 @@ with tab4:
     st.dataframe(df, use_container_width=True, hide_index=True)
 
 if auto_refresh:
-    time.sleep(refresh_rate); st.rerun()
+    st_autorefresh(interval=refresh_rate * 1000, key="datarefresh")
