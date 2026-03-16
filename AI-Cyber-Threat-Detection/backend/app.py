@@ -18,32 +18,31 @@ ANOMALY_PATH = os.path.join(BASE_DIR, "..", "model", "anomaly_model.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "..", "model", "scaler.pkl")
 DATASET_PATH = os.path.join(BASE_DIR, "..", "dataset", "cleaned_cicids.csv")
 
-# Global variables
 model = None
 anomaly_model = None
 scaler = None
-threat_tracker = {}
 
 def load_models():
     global model, anomaly_model, scaler
     try:
-        # Load models using mmap_mode to save RAM if supported
+        print("Backend: Loading AI models into memory...")
         model = joblib.load(MODEL_PATH)
         anomaly_model = joblib.load(ANOMALY_PATH)
         scaler = joblib.load(SCALER_PATH)
-        print("Models loaded successfully")
+        print("Backend: AI Core Online (Models Loaded)")
     except Exception as e:
-        print(f"Error loading models: {e}")
+        print(f"Backend Error: {e}")
 
 load_models()
 
+@app.route("/health", methods=["GET"])
+def health(): return jsonify({"status": "ready" if model else "loading"})
+
 @app.route("/stats", methods=["GET"])
-def fetch_stats():
-    return jsonify({"total_logs": get_log_count()})
+def fetch_stats(): return jsonify({"total_logs": get_log_count()})
 
 @app.route("/logs", methods=["GET"])
-def fetch_logs():
-    return jsonify(get_logs(limit=100)) # Reduced limit for memory
+def fetch_logs(): return jsonify(get_logs(limit=50))
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -51,32 +50,29 @@ def predict():
     data = request.json
     source_ip = data.get("source_ip", f"192.168.1.{random.randint(100, 254)}")
     try:
-        # Minimize DF size
         df_input = pd.DataFrame([data])
         X_scaled = scaler.transform(df_input[model.feature_names_in_])
         prediction = str(model.predict(X_scaled)[0])
         base_risk = round(float(np.max(model.predict_proba(X_scaled)[0])), 2)
-        
         severity = "High" if prediction != "BENIGN" else "Low"
         is_anomaly = 1 if int(anomaly_model.predict(df_input[anomaly_model.feature_names_in_])[0]) == -1 else 0
-        
-        log_prediction(source_ip, prediction, severity, base_risk, "Live Traffic", is_anomaly)
+        log_prediction(source_ip, prediction, severity, base_risk, "Live Stream", is_anomaly)
         return jsonify({"status": "ok"})
     except: return jsonify({"status": "err"}), 500
 
 def run_simulation():
-    print("Simulator starting in 15s...")
-    time.sleep(15) # Give system time to settle
+    print("Simulator: Waiting for backend to stabilize (5s)...")
+    time.sleep(5)
     try:
-        # Load only 500 rows to save memory instead of the whole file
-        data = pd.read_csv(DATASET_PATH, nrows=500)
+        print("Simulator: Loading traffic samples...")
+        data = pd.read_csv(DATASET_PATH, nrows=300)
         while True:
             row = data.sample(1).drop("Label", axis=1).iloc[0].to_dict()
             row = {k: float(v) for k, v in row.items()}
-            try: requests.post("http://localhost:5000/predict", json=row, timeout=1)
+            try: requests.post("http://127.0.0.1:5000/predict", json=row, timeout=1)
             except: pass
-            time.sleep(5) # Slower simulation = lower CPU/RAM
-    except Exception as e: print(f"Sim error: {e}")
+            time.sleep(4)
+    except Exception as e: print(f"Simulator Error: {e}")
 
 threading.Thread(target=run_simulation, daemon=True).start()
 
