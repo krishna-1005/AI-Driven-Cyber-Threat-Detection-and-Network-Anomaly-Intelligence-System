@@ -79,6 +79,16 @@ df = pd.DataFrame(
     columns=["Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly"]
 )
 
+# Initialize session state for live counting
+if 'initial_count' not in st.session_state:
+    st.session_state.initial_count = len(df)
+    st.session_state.start_time = datetime.now().strftime("%H:%M:%S")
+
+live_total = len(df) - st.session_state.initial_count
+if live_total < 0: # Handle cases where DB might be cleared
+    st.session_state.initial_count = len(df)
+    live_total = 0
+
 # Demo fallback if API returns no data
 if df.empty:
     st.info("Demo Mode: Displaying simulated cyber threat intelligence.")
@@ -97,7 +107,7 @@ st.title("🛡️ Sentinel Intelligence Dashboard")
 m1, m2, m3, m4 = st.columns(4)
 with m1:
     st.markdown('<div class="metric-container">', unsafe_allow_html=True)
-    st.metric("Total Flows", f"{len(df):,}")
+    st.metric("Live Session Flows", f"{live_total:,}", delta=f"Since {st.session_state.start_time}")
     st.markdown('</div>', unsafe_allow_html=True)
 with m2:
     st.markdown('<div class="metric-container">', unsafe_allow_html=True)
