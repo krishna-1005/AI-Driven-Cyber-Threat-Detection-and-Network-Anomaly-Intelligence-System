@@ -9,7 +9,7 @@ import itertools
 # =====================================
 
 # Change back to local URL for local testing as per user's earlier setup
-API_URL = "https://ai-driven-cyber-threat-detection-and.onrender.com/predict"
+API_URL = "http://localhost:5000/predict"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATASET_PATH = os.path.join(BASE_DIR, "..", "dataset", "cleaned_cicids.csv")
