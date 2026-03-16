@@ -54,7 +54,7 @@ for i in range(50):
     payload = row.iloc[0].to_dict()
 
     try:
-        response = requests.post(API_URL, json=payload)
+        response = requests.post("https://ai-driven-cyber-threat-detection-and.onrender.com/predict",json=payload)
 
         if response.status_code == 200:
             result = response.json()
