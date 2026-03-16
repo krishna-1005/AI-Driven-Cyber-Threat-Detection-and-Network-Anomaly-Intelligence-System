@@ -216,6 +216,89 @@ for _, p in latest_packets.iterrows():
 terminal_html += "</div>"
 st.markdown(terminal_html, unsafe_allow_html=True)
 
+# --- THREE.JS CYBER CORE VISUALIZATION ---
+three_js_code = """
+<div id="canvas-container" style="width: 100%; height: 350px; background: transparent; cursor: move; border-radius: 16px; border: 1px solid rgba(88, 166, 255, 0.1); margin-bottom: 25px; overflow: hidden;"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    
+    renderer.setSize(container.offsetWidth, container.offsetHeight);
+    renderer.setClearColor(0x000000, 0);
+    container.appendChild(renderer.domElement);
+
+    // AI Core Sphere (Neural Nodes)
+    const geometry = new THREE.IcosahedronGeometry(2, 2);
+    const material = new THREE.PointsMaterial({
+        color: 0x58a6ff,
+        size: 0.05,
+        transparent: true,
+        opacity: 0.8
+    });
+    const sphere = new THREE.Points(geometry, material);
+    scene.add(sphere);
+
+    // Inner Core Glow
+    const innerGeo = new THREE.SphereGeometry(1.2, 32, 32);
+    const innerMat = new THREE.MeshBasicMaterial({
+        color: 0x58a6ff,
+        transparent: true,
+        opacity: 0.1,
+        wireframe: true
+    });
+    const innerSphere = new THREE.Mesh(innerGeo, innerMat);
+    scene.add(innerSphere);
+
+    // Background Particle Field (Traffic Data)
+    const particlesGeometry = new THREE.BufferGeometry();
+    const posArray = new Float32Array(2000 * 3);
+    for(let i=0; i < 2000 * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 15;
+    }
+    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const particlesMaterial = new THREE.PointsMaterial({
+        size: 0.005,
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.3
+    });
+    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+    scene.add(particlesMesh);
+
+    camera.position.z = 5;
+
+    function animate() {
+        requestAnimationFrame(animate);
+        sphere.rotation.y += 0.005;
+        sphere.rotation.x += 0.002;
+        innerSphere.rotation.y -= 0.003;
+        particlesMesh.rotation.y += 0.0005;
+        
+        // Pulse Effect
+        const time = Date.now() * 0.001;
+        innerSphere.scale.set(
+            1 + Math.sin(time) * 0.1,
+            1 + Math.sin(time) * 0.1,
+            1 + Math.sin(time) * 0.1
+        );
+        
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = container.offsetWidth / container.offsetHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.offsetWidth, container.offsetHeight);
+    });
+</script>
+"""
+import streamlit.components.v1 as components
+components.html(three_js_code, height=360)
+
 # Demo fallback if API returns no data
 if df.empty:
     st.info("Demo Mode: Displaying simulated cyber threat intelligence.")
@@ -232,6 +315,14 @@ if df.empty:
 # --- TOP METRICS ---
 st.title("🛡️ Sentinel Intelligence Dashboard")
 
+# Live Monitoring Status Bar
+st.markdown(f"""
+    <div style='background: rgba(88, 166, 255, 0.1); padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(88, 166, 255, 0.2); margin-bottom: 20px; display: flex; align-items: center;'>
+        <div class="status-pulse"></div>
+        <span style='color: #58a6ff; font-weight: 600; font-family: "JetBrains Mono", monospace;'>LIVE_MONITORING: ACTIVE | POLLING_INTERVAL: 2s | SESSION_START: {st.session_state.start_time}</span>
+    </div>
+""", unsafe_allow_html=True)
+
 # Real-time Critical Alerts
 high_threats = df[df["Severity"] == "High"].head(3)
 for _, threat in high_threats.iterrows():
@@ -241,7 +332,7 @@ for _, threat in high_threats.iterrows():
 m1, m2, m3, m4 = st.columns(4)
 with m1:
     st.markdown('<div class="metric-container">', unsafe_allow_html=True)
-    st.metric("Live Session Flows", f"{live_total:,}", delta=f"Since {st.session_state.start_time}")
+    st.metric("Total Requests", f"{live_total:,}", delta=f"{len(df)} Overall")
     st.markdown('</div>', unsafe_allow_html=True)
 with m2:
     st.markdown('<div class="metric-container">', unsafe_allow_html=True)
