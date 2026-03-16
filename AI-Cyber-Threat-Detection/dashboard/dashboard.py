@@ -15,6 +15,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- GLOBAL REFRESH (TOP LEVEL FOR PERFORMANCE) ---
+st_autorefresh(interval=2000, key="global_refresh")
+
 # --- PREMIUM STYLING ---
 st.markdown("""
 <style>
@@ -26,6 +29,22 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
     
+    /* Terminal Sniffer View */
+    .terminal-sniffer {
+        background: rgba(0, 0, 0, 0.8);
+        border: 1px solid #58a6ff33;
+        border-radius: 8px;
+        padding: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        color: #00ff00;
+        height: 120px;
+        overflow-y: hidden;
+        margin-bottom: 20px;
+        box-shadow: inset 0 0 10px rgba(0,255,0,0.1);
+    }
+    .terminal-line { margin-bottom: 2px; white-space: nowrap; }
+
     /* Sidebar Styling */
     section[data-testid="stSidebar"] { 
         background-color: rgba(22, 27, 34, 0.95) !important; 
@@ -132,8 +151,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- LIVE MONITORING LOGIC ---
+if 'start_time' not in st.session_state:
+    st.session_state.start_time = datetime.now().strftime("%H:%M:%S")
+
 # --- DATA FETCHING ---
-API_BASE = API_BASE = "http://localhost:5000"
+API_BASE = "http://localhost:5000"
 
 def get_logs():
     try:
@@ -152,10 +175,18 @@ with st.sidebar:
     st.markdown("<h1 style='text-align: center;'>SENTINEL AI</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #8b949e;'>Intelligent Cyber Defense</p>", unsafe_allow_html=True)
     st.divider()
-    status = st.empty()
-    status.markdown("🟢 **System: Online**")
+    
+    # Live Status with Pulse
+    st.markdown("""
+        <div style='display: flex; align-items: center; justify-content: center; background: rgba(0,255,0,0.1); padding: 10px; border-radius: 8px; border: 1px solid rgba(0,255,0,0.2);'>
+            <div class="status-pulse"></div>
+            <span style='color: #00ff00; font-weight: 600;'>SYSTEM ACTIVE</span>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.write("")
     auto_refresh = st.toggle("Live Monitoring", value=True)
-    refresh_rate = st.slider("Interval (s)", 1, 10, 3)
+    
     st.divider()
     with st.expander("Intelligence Specs"):
         st.write("🧠 **Model**: Hybrid RF + Isolation Forest")
@@ -170,15 +201,20 @@ df = pd.DataFrame(
     columns=["Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly"]
 )
 
-# Initialize session state for live counting
-if 'initial_count' not in st.session_state:
-    st.session_state.initial_count = len(df)
-    st.session_state.start_time = datetime.now().strftime("%H:%M:%S")
+# Robust Live Count
+if 'baseline_count' not in st.session_state:
+    st.session_state.baseline_count = len(df)
 
-live_total = len(df) - st.session_state.initial_count
-if live_total < 0: # Handle cases where DB might be cleared
-    st.session_state.initial_count = len(df)
-    live_total = 0
+live_total = max(0, len(df) - st.session_state.baseline_count)
+
+# --- LIVE SNIFFER VIEW ---
+latest_packets = df.head(5)
+terminal_html = "<div class='terminal-sniffer'>"
+for _, p in latest_packets.iterrows():
+    color = "#ff4b4b" if p['Severity'] == "High" else "#00ff00"
+    terminal_html += f"<div class='terminal-line' style='color:{color}'>[{p['Time']}] INCOMING_FLOW: src={p['Source IP']} type={p['Attack Type']} risk={p['Risk Score']}</div>"
+terminal_html += "</div>"
+st.markdown(terminal_html, unsafe_allow_html=True)
 
 # Demo fallback if API returns no data
 if df.empty:
@@ -298,6 +334,3 @@ with tab4:
         file_name=f"sentinel_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
         mime="text/csv",
     )
-
-if auto_refresh:
-    st_autorefresh(interval=refresh_rate * 1000, key="datarefresh")
