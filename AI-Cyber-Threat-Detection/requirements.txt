@@ -7,3 +7,8 @@ requests
 streamlit
 plotly
 gunicorn
+streamlit
+pandas
+requests
+plotly
+numpy
