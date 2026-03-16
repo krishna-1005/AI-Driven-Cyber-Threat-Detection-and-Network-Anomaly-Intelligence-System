@@ -207,15 +207,6 @@ if 'baseline_count' not in st.session_state:
 
 live_total = max(0, len(df) - st.session_state.baseline_count)
 
-# --- LIVE SNIFFER VIEW ---
-latest_packets = df.head(5)
-terminal_html = "<div class='terminal-sniffer'>"
-for _, p in latest_packets.iterrows():
-    color = "#ff4b4b" if p['Severity'] == "High" else "#00ff00"
-    terminal_html += f"<div class='terminal-line' style='color:{color}'>[{p['Time']}] INCOMING_FLOW: src={p['Source IP']} type={p['Attack Type']} risk={p['Risk Score']}</div>"
-terminal_html += "</div>"
-st.markdown(terminal_html, unsafe_allow_html=True)
-
 # --- THREE.JS CYBER CORE VISUALIZATION ---
 three_js_code = """
 <div id="canvas-container" style="width: 100%; height: 350px; background: transparent; cursor: move; border-radius: 16px; border: 1px solid rgba(88, 166, 255, 0.1); margin-bottom: 25px; overflow: hidden;"></div>
