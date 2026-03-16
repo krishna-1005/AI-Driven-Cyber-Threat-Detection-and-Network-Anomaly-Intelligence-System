@@ -158,6 +158,12 @@ if 'start_time' not in st.session_state:
 # --- DATA FETCHING ---
 API_BASE = "http://localhost:5000"
 
+def get_stats():
+    try:
+        r = requests.get(f"{API_BASE}/stats", timeout=2)
+        return r.json() if r.status_code == 200 else {"total_logs": 0}
+    except: return {"total_logs": 0}
+
 def get_logs():
     try:
         r = requests.get(f"{API_BASE}/logs", timeout=2)
@@ -194,6 +200,8 @@ with st.sidebar:
         st.write("📈 **Forensics**: Behavioral Anomaly Score")
 
 # --- DATA PROCESSING ---
+stats = get_stats()
+total_in_db = stats.get("total_logs", 0)
 logs_data = get_logs()
 
 df = pd.DataFrame(
@@ -201,11 +209,11 @@ df = pd.DataFrame(
     columns=["Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly"]
 )
 
-# Robust Live Count
-if 'baseline_count' not in st.session_state:
-    st.session_state.baseline_count = len(df)
+# Robust Live Count: Baseline on first load
+if 'baseline_total' not in st.session_state:
+    st.session_state.baseline_total = total_in_db
 
-live_total = max(0, len(df) - st.session_state.baseline_count)
+live_total = max(0, total_in_db - st.session_state.baseline_total)
 
 # --- THREE.JS INTERACTIVE NEURAL MESH ---
 three_js_code = """
@@ -377,7 +385,7 @@ for _, threat in high_threats.iterrows():
 m1, m2, m3, m4 = st.columns(4)
 with m1:
     st.markdown('<div class="metric-container">', unsafe_allow_html=True)
-    st.metric("Total Requests", f"{live_total:,}", delta=f"{len(df)} Overall")
+    st.metric("Total Requests", f"{live_total:,}", delta=f"{total_in_db} Overall")
     st.markdown('</div>', unsafe_allow_html=True)
 with m2:
     st.markdown('<div class="metric-container">', unsafe_allow_html=True)

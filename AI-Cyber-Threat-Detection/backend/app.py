@@ -4,7 +4,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 import joblib
 import pandas as pd
-from database import init_db, log_prediction, get_logs, cleanup_db, is_blacklisted, blacklist_ip, get_blacklist
+from database import init_db, log_prediction, get_logs, cleanup_db, is_blacklisted, blacklist_ip, get_blacklist, get_log_count
 
 app = Flask(__name__)
 init_db()
@@ -31,6 +31,10 @@ IP_LIST = ["192.168.1.10", "10.0.0.5", "172.16.5.85", "203.0.113.4", "198.51.100
 
 # Simple in-memory tracker for predictive risk scoring (Escalation)
 threat_tracker = {}
+
+@app.route("/stats", methods=["GET"])
+def fetch_stats():
+    return jsonify({"total_logs": get_log_count()})
 
 @app.route("/logs", methods=["GET"])
 def fetch_logs():
@@ -151,4 +155,3 @@ def predict():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
- 

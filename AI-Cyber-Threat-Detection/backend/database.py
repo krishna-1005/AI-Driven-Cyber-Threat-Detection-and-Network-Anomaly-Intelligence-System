@@ -124,6 +124,18 @@ def get_blacklist():
 
 
 # ----------------------------------------------------
+# Get Stats for Dashboard
+# ----------------------------------------------------
+def get_log_count():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM logs")
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+
+# ----------------------------------------------------
 # Get Logs for Dashboard
 # ----------------------------------------------------
 def get_logs(limit=1000):
