@@ -50,7 +50,7 @@ def predict():
     source_ip = data.get("source_ip", f"192.168.1.{random.randint(100, 254)}")
 
     # 1. Check Mitigation Status
-    if is_blacklisted(source_ip):
+    if False and is_blacklisted(source_ip):
         return jsonify({
             "attack_type": "BLOCKED",
             "severity": "CRITICAL",
