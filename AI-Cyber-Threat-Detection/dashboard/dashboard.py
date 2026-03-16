@@ -34,6 +34,29 @@ st.markdown("""
         backdrop-filter: blur(20px); 
     }
     
+    /* Fixed Navbar */
+    .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        background: rgba(13, 17, 23, 0.85);
+        backdrop-filter: blur(15px);
+        border-bottom: 1px solid rgba(88, 166, 255, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 2rem;
+        z-index: 10000;
+    }
+    .nav-logo { font-size: 1.6rem; font-weight: 900; letter-spacing: -1px; }
+    .nav-logo span { color: #58a6ff; }
+    .nav-info { color: #8b949e; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; text-align: right; }
+    
+    /* Adjust main content padding */
+    .stMainBlockContainer { padding-top: 5rem !important; }
+    
     /* Typography */
     h1, h2, h3 { color: #58a6ff !important; font-weight: 700; border: none; }
     .hero-title { font-size: 2.5rem; background: linear-gradient(90deg, #58a6ff, #1f6feb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
@@ -73,6 +96,17 @@ st.markdown("""
         margin-bottom: 10px;
     }
 </style>
+""", unsafe_allow_html=True)
+
+# --- NAVBAR ---
+st.markdown(f"""
+<div class="navbar">
+    <div class="nav-logo">Tri<span>Logic</span></div>
+    <div class="nav-info">
+        SENTINEL AI | INTELLIGENCE CORE<br>
+        <span style="font-size:0.7rem; color:#58a6ff;">{datetime.now().strftime("%d %b %Y")}</span>
+    </div>
+</div>
 """, unsafe_allow_html=True)
 
 # --- THREE.JS BACKGROUND ---
