@@ -41,7 +41,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- DATA FETCHING ---
-API_BASE = "https://ai-driven-cyber-threat-detection-and.onrender.com"
+API_BASE = "http://localhost:5000"
 
 def get_logs():
     try:
