@@ -4,7 +4,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 import joblib
 import pandas as pd
-from backend.database import init_db, log_prediction, get_logs, cleanup_db, is_blacklisted, blacklist_ip, get_blacklist
+from database import init_db, log_prediction, get_logs, cleanup_db, is_blacklisted, blacklist_ip, get_blacklist
 
 app = Flask(__name__)
 init_db()
