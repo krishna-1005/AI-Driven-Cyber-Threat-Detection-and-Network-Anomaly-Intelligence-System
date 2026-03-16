@@ -72,12 +72,24 @@ with st.sidebar:
 
 # --- DATA PROCESSING ---
 logs_data = get_logs()
-df = pd.DataFrame(logs_data, columns=["Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly"])
 
+df = pd.DataFrame(
+    logs_data,
+    columns=["Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly"]
+)
+
+# Demo fallback if API returns no data
 if df.empty:
-    st.title("🛡️ Sentinel Command Center")
-    st.info("📡 Scanning for network traffic... Start the simulator to see data.")
-    time.sleep(2); st.rerun()
+    st.warning("⚠️ Live traffic not detected. Showing demo threat intelligence data.")
+
+    df = pd.DataFrame([
+        ["2026-03-16 10:21","203.0.113.5","DDoS","High",0.92,"Port 443 flood",0],
+        ["2026-03-16 10:23","192.168.1.15","Port Scan","Medium",0.61,"Recon attempt",1],
+        ["2026-03-16 10:25","198.51.100.9","BENIGN","Low",0.07,"Normal traffic",0],
+        ["2026-03-16 10:27","172.16.5.2","Brute Force","High",0.88,"Login attempts",0],
+        ["2026-03-16 10:29","203.0.113.77","SQL Injection","High",0.95,"Web exploit attempt",0]
+    ],
+    columns=["Time","Source IP","Attack Type","Severity","Risk Score","Summary","Is Anomaly"])
 
 # --- TOP METRICS ---
 st.title("🛡️ Sentinel Intelligence Dashboard")
@@ -110,6 +122,7 @@ with tab1:
     with c1:
         st.subheader("Intelligence Distribution")
         counts = df["Attack Type"].value_counts().reset_index()
+        counts.columns = ["Attack Type","count"]
         fig = px.pie(counts, values='count', names='Attack Type', hole=0.5, color_discrete_sequence=px.colors.sequential.Blues_r)
         fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="white", margin=dict(t=0,b=0,l=0,r=0))
         st.plotly_chart(fig, use_container_width=True)
