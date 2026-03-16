@@ -63,7 +63,7 @@ with st.sidebar:
     st.divider()
     status = st.empty()
     status.markdown("🟢 **System: Online**")
-    auto_refresh = st.toggle("Live Monitoring", value=False)
+    auto_refresh = st.toggle("Live Monitoring", value=True)
     refresh_rate = st.slider("Interval (s)", 1, 10, 3)
     st.divider()
     with st.expander("Intelligence Specs"):
@@ -112,6 +112,25 @@ with m4:
     st.markdown('<div class="metric-container">', unsafe_allow_html=True)
     st.metric("Avg Risk Index", f"{df['Risk Score'].mean():.2f}")
     st.markdown('</div>', unsafe_allow_html=True)
+
+st.write("")
+
+# --- LIVE FLOW FEED ---
+st.subheader("📡 Live Network Traffic (Real-time Flow Monitoring)")
+live_df = df.head(10)[["Time", "Source IP", "Attack Type", "Severity", "Risk Score"]]
+
+def color_severity(val):
+    color = 'white'
+    if val == 'High': color = '#ff4b4b'
+    elif val == 'Medium': color = '#ffa500'
+    elif val == 'Low': color = '#00ff00'
+    return f'color: {color}'
+
+st.dataframe(
+    live_df.style.applymap(color_severity, subset=['Severity']),
+    use_container_width=True,
+    hide_index=True
+)
 
 st.write("")
 
