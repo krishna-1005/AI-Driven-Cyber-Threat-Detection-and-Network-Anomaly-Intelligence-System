@@ -1,1 +1,1 @@
-gunicorn AI-Cyber-Threat-Detection.backend.app:app
+gunicorn backend.app:app --bind 0.0.0.0:$PORT
