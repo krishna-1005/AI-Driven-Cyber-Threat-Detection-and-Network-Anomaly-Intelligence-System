@@ -1,223 +1,150 @@
 import streamlit as st
 import requests
 import pandas as pd
+import time
 from datetime import datetime
 import plotly.express as px
-import time
+import plotly.graph_objects as go
 
-# =============================
-# BACKEND API
-# =============================
-
-API_URL = "https://ai-driven-cyber-threat-detection-and.onrender.com/logs"
-
-# =============================
-# PAGE CONFIG
-# =============================
-
+# --- CONFIGURATION ---
 st.set_page_config(
     page_title="SENTINEL AI | Cyber Threat Intelligence",
     layout="wide",
-    page_icon="🛡️"
+    page_icon="🛡️",
+    initial_sidebar_state="expanded"
 )
 
-# =============================
-# STYLING
-# =============================
-
+# --- PREMIUM STYLING ---
 st.markdown("""
 <style>
-
-.stApp{
-background-color:#0e1117;
-color:white;
-}
-
-.metric-card{
-background:#161b22;
-padding:20px;
-border-radius:10px;
-border:1px solid #30363d;
-}
-
-.alert-card{
-background:rgba(255,75,75,0.1);
-padding:15px;
-border-left:5px solid red;
-border-radius:8px;
-margin-bottom:10px;
-}
-
+    .stApp { background-color: #0e1117; color: #e0e0e0; }
+    section[data-testid="stSidebar"] { background-color: #161b22 !important; border-right: 1px solid #30363d; }
+    h1, h2, h3 { color: #58a6ff !important; font-family: 'Inter', sans-serif; font-weight: 700; }
+    div[data-testid="stMetricValue"] { font-size: 2rem !important; color: #ffffff !important; }
+    .metric-container {
+        background: #161b22; padding: 20px; border-radius: 12px; border: 1px solid #30363d;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s;
+    }
+    .metric-container:hover { border-color: #58a6ff; transform: translateY(-2px); }
+    .threat-card {
+        padding: 15px; border-radius: 10px; margin-bottom: 12px;
+        background: rgba(255, 75, 75, 0.1); border: 1px solid rgba(255, 75, 75, 0.3); border-left: 5px solid #ff4b4b;
+    }
+    .anomaly-card {
+        padding: 15px; border-radius: 10px; margin-bottom: 12px;
+        background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); border-left: 5px solid #ffa500;
+    }
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
+    .stTabs [data-baseweb="tab"] { height: 50px; color: #8b949e; }
+    .stTabs [aria-selected="true"] { color: #58a6ff !important; border-bottom: 2px solid #58a6ff !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# =============================
-# FETCH DATA FROM BACKEND
-# =============================
+# --- DATA FETCHING ---
+API_BASE = "http://127.0.0.1:10000"
 
-def fetch_logs():
+def get_logs():
     try:
-        r = requests.get(API_URL, timeout=5)
+        r = requests.get(f"{API_BASE}/logs", timeout=2)
+        return r.json() if r.status_code == 200 else []
+    except: return []
 
-        if r.status_code == 200:
-            return r.json()
+def get_blacklist():
+    try:
+        r = requests.get(f"{API_BASE}/blacklist", timeout=2)
+        return r.json() if r.status_code == 200 else []
+    except: return []
 
-    except:
-        pass
+# --- SIDEBAR ---
+with st.sidebar:
+    st.markdown("<h1 style='text-align: center;'>SENTINEL AI</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #8b949e;'>Intelligent Cyber Defense</p>", unsafe_allow_html=True)
+    st.divider()
+    status = st.empty()
+    status.markdown("🟢 **System: Online**")
+    auto_refresh = st.toggle("Live Monitoring", value=True)
+    refresh_rate = st.slider("Interval (s)", 1, 10, 3)
+    st.divider()
+    with st.expander("Intelligence Specs"):
+        st.write("🧠 **Model**: Hybrid RF + Isolation Forest")
+        st.write("🛡️ **Response**: Automated IP Blacklisting")
+        st.write("📈 **Forensics**: Behavioral Anomaly Score")
 
-    return []
+# --- DATA PROCESSING ---
+logs_data = get_logs()
+df = pd.DataFrame(logs_data, columns=["Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly"])
 
+if df.empty:
+    st.title("🛡️ Sentinel Command Center")
+    st.info("📡 Scanning for network traffic... Start the simulator to see data.")
+    time.sleep(2); st.rerun()
 
-# =============================
-# HEADER
-# =============================
+# --- TOP METRICS ---
+st.title("🛡️ Sentinel Intelligence Dashboard")
+m1, m2, m3, m4 = st.columns(4)
+with m1:
+    st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+    st.metric("Total Flows", f"{len(df):,}")
+    st.markdown('</div>', unsafe_allow_html=True)
+with m2:
+    st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+    st.metric("Anomalies Identified", len(df[df["Is Anomaly"] == 1]))
+    st.markdown('</div>', unsafe_allow_html=True)
+with m3:
+    st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+    threats = len(df[df["Severity"] == "High"])
+    st.metric("Threats Mitigated", threats, delta=threats, delta_color="inverse")
+    st.markdown('</div>', unsafe_allow_html=True)
+with m4:
+    st.markdown('<div class="metric-container">', unsafe_allow_html=True)
+    st.metric("Avg Risk Index", f"{df['Risk Score'].mean():.2f}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-st.title("🛡️ SENTINEL AI — Threat Intelligence Command Center")
+st.write("")
 
-st.caption(
-    f"Network Monitoring Active | Last Update: {datetime.now().strftime('%H:%M:%S')}"
-)
+# --- TABS ---
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Analytics", "🕵️ Forensics", "🛡️ Mitigation", "📜 Full Logs"])
 
-# =============================
-# LOAD DATA
-# =============================
-
-logs = fetch_logs()
-
-if not logs:
-    st.warning("📡 Waiting for network traffic data... Ensure simulator is running.")
-    st.stop()
-
-# backend returns list format
-df = pd.DataFrame(
-    logs,
-    columns=[
-        "Time",
-        "Source IP",
-        "Attack Type",
-        "Severity",
-        "Risk Score",
-        "Summary"
-    ]
-)
-
-# =============================
-# METRICS
-# =============================
-
-total_traffic = len(df)
-
-attacks = len(df[df["Severity"] == "High"])
-
-benign = len(df[df["Attack Type"] == "BENIGN"])
-
-avg_risk = df["Risk Score"].mean()
-
-c1,c2,c3,c4 = st.columns(4)
-
-with c1:
-    st.metric("Total Traffic", total_traffic)
-
-with c2:
-    st.metric("Detected Attacks", attacks)
-
-with c3:
-    st.metric("Benign Traffic", benign)
-
-with c4:
-    st.metric("Average Risk Score", round(avg_risk,2))
-
-
-st.divider()
-
-# =============================
-# CHARTS
-# =============================
-
-col1,col2 = st.columns(2)
-
-# Attack Distribution
-with col1:
-
-    st.subheader("Attack Distribution")
-
-    attack_df = df[df["Attack Type"] != "BENIGN"]
-
-    if not attack_df.empty:
-
-        fig = px.pie(
-            attack_df,
-            names="Attack Type",
-            hole=0.4
-        )
-
+with tab1:
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("Intelligence Distribution")
+        counts = df["Attack Type"].value_counts().reset_index()
+        fig = px.pie(counts, values='count', names='Attack Type', hole=0.5, color_discrete_sequence=px.colors.sequential.Blues_r)
+        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="white", margin=dict(t=0,b=0,l=0,r=0))
+        st.plotly_chart(fig, use_container_width=True)
+    with c2:
+        st.subheader("Behavioral Risk Velocity")
+        fig = px.area(df.tail(50), x=range(len(df.tail(50))), y="Risk Score", color_discrete_sequence=['#58a6ff'])
+        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis_visible=False, font_color="white")
         st.plotly_chart(fig, use_container_width=True)
 
+with tab2:
+    st.subheader("Behavioral Anomaly Forensics")
+    anomalies = df[df["Is Anomaly"] == 1].head(10)
+    if anomalies.empty:
+        st.success("No behavioral anomalies detected.")
     else:
+        for _, row in anomalies.iterrows():
+            st.markdown(f"""
+            <div class="anomaly-card">
+                <strong>⚠️ Behavioral Anomaly Detected</strong> | Risk: {row['Risk Score']}<br>
+                Source: {row['Source IP']} | Time: {row['Time']} | Type: {row['Attack Type']}<br>
+                <em>System Analysis: Unusual packet pattern identified via Unsupervised Learning.</em>
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.success("No attacks detected")
+with tab3:
+    st.subheader("Automated Mitigation Console")
+    bl_data = get_blacklist()
+    if bl_data:
+        bl_df = pd.DataFrame(bl_data, columns=["Blocked IP", "Reason", "Timestamp"])
+        st.table(bl_df)
+    else:
+        st.info("No active IP blocks.")
 
+with tab4:
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
-# Risk Score Trend
-with col2:
-
-    st.subheader("Risk Score Trend")
-
-    trend = df.tail(30)
-
-    fig = px.line(
-        trend,
-        y="Risk Score"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-st.divider()
-
-# =============================
-# ALERTS
-# =============================
-
-st.subheader("🚨 Critical Threat Alerts")
-
-alerts = df[df["Severity"] == "High"].head(10)
-
-if alerts.empty:
-
-    st.success("No active threats detected")
-
-else:
-
-    for _,row in alerts.iterrows():
-
-        st.markdown(f"""
-        <div class="alert-card">
-
-        <b>{row['Attack Type']} Detected</b><br>
-
-        Source IP : {row['Source IP']} <br>
-
-        Risk Score : {row['Risk Score']} <br>
-
-        {row['Summary']}
-
-        </div>
-        """, unsafe_allow_html=True)
-
-
-# =============================
-# NETWORK LOG TABLE
-# =============================
-
-st.subheader("📜 Full Network Log")
-
-st.dataframe(df, use_container_width=True)
-
-
-# =============================
-# AUTO REFRESH
-# =============================
-
-time.sleep(3)
-
-st.rerun()
+if auto_refresh:
+    time.sleep(refresh_rate); st.rerun()

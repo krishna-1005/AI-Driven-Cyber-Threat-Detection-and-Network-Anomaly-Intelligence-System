@@ -9,9 +9,8 @@ def init_db():
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        # Drop table if it exists to ensure new schema (use with caution in prod)
-        # For a hackathon, this is safe to ensure the UI works.
         cursor.execute("DROP TABLE IF EXISTS logs")
+        cursor.execute("DROP TABLE IF EXISTS blacklist")
         cursor.execute("""
             CREATE TABLE logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,29 +19,63 @@ def init_db():
                 attack_type TEXT,
                 severity TEXT,
                 risk_score REAL,
-                summary TEXT
+                summary TEXT,
+                is_anomaly INTEGER DEFAULT 0
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE blacklist (
+                ip TEXT PRIMARY KEY,
+                reason TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
         conn.commit()
         conn.close()
-        print("Database initialized with new schema.")
+        print("Database initialized with Blacklist & Anomaly support.")
     except Exception as e:
         print(f"DB Init Error: {e}")
 
-def log_prediction(source_ip, attack_type, severity, risk_score, summary):
+def log_prediction(source_ip, attack_type, severity, risk_score, summary, is_anomaly=0):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO logs (source_ip, attack_type, severity, risk_score, summary) 
-        VALUES (?, ?, ?, ?, ?)
-    """, (source_ip, attack_type, severity, risk_score, summary))
+        INSERT INTO logs (source_ip, attack_type, severity, risk_score, summary, is_anomaly) 
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (source_ip, attack_type, severity, risk_score, summary, is_anomaly))
     conn.commit()
     conn.close()
+
+def blacklist_ip(ip, reason):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR REPLACE INTO blacklist (ip, reason) VALUES (?, ?)", (ip, reason))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Blacklist Error: {e}")
+
+def is_blacklisted(ip):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT ip FROM blacklist WHERE ip = ?", (ip,))
+    row = cursor.fetchone()
+    conn.close()
+    return row is not None
+
+def get_blacklist():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT ip, reason, timestamp FROM blacklist ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
 
 def get_logs(limit=1000):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT timestamp, source_ip, attack_type, severity, risk_score, summary FROM logs ORDER BY id DESC LIMIT ?", (limit,))
+    cursor.execute("SELECT timestamp, source_ip, attack_type, severity, risk_score, summary, is_anomaly FROM logs ORDER BY id DESC LIMIT ?", (limit,))
     rows = cursor.fetchall()
     conn.close()
     return rows
