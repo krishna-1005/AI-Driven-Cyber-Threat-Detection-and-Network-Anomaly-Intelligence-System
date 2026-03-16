@@ -1,1 +1,1 @@
-gunicorn backend.app:app
+gunicorn AI-Cyber-Threat-Detection.backend.app:app
