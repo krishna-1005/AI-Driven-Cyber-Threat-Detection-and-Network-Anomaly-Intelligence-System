@@ -39,10 +39,21 @@ def log_prediction(source_ip, attack_type, severity, risk_score, summary):
     conn.commit()
     conn.close()
 
-def get_logs(limit=100):
+def get_logs(limit=1000):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT timestamp, source_ip, attack_type, severity, risk_score, summary FROM logs ORDER BY id DESC LIMIT ?", (limit,))
     rows = cursor.fetchall()
     conn.close()
     return rows
+
+def cleanup_db(max_rows=5000):
+    """Keep only the latest rows to prevent database bloat."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM logs WHERE id NOT IN (SELECT id FROM logs ORDER BY id DESC LIMIT ?)", (max_rows,))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"DB Cleanup Error: {e}")

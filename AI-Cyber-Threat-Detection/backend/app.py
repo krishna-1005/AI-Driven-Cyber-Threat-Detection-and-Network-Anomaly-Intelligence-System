@@ -4,7 +4,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 import joblib
 import pandas as pd
-from backend.database import init_db, log_prediction, get_logs
+from backend.database import init_db, log_prediction, get_logs, cleanup_db
 
 app = Flask(__name__)
 init_db()
@@ -77,6 +77,10 @@ def predict():
         
         # Log to Database
         log_prediction(source_ip, prediction, severity, risk_score, summary)
+
+        # Periodic cleanup (every 100 requests approximately)
+        if random.random() < 0.01:
+            cleanup_db()
 
         return jsonify({
             "attack_type": prediction,
