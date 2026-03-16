@@ -21,15 +21,15 @@ DATASET_PATH = os.path.join(BASE_DIR, "..", "dataset", "cleaned_cicids.csv")
 model = None
 anomaly_model = None
 scaler = None
+threat_tracker = {}
 
 def load_models():
     global model, anomaly_model, scaler
     try:
-        print("Backend: Loading AI models into memory...")
         model = joblib.load(MODEL_PATH)
         anomaly_model = joblib.load(ANOMALY_PATH)
         scaler = joblib.load(SCALER_PATH)
-        print("Backend: AI Core Online (Models Loaded)")
+        print("Backend: Models Loaded")
     except Exception as e:
         print(f"Backend Error: {e}")
 
@@ -42,7 +42,10 @@ def health(): return jsonify({"status": "ready" if model else "loading"})
 def fetch_stats(): return jsonify({"total_logs": get_log_count()})
 
 @app.route("/logs", methods=["GET"])
-def fetch_logs(): return jsonify(get_logs(limit=50))
+def fetch_logs(): return jsonify(get_logs(limit=100))
+
+@app.route("/blacklist", methods=["GET"])
+def fetch_blacklist(): return jsonify(get_blacklist())
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -56,23 +59,34 @@ def predict():
         base_risk = round(float(np.max(model.predict_proba(X_scaled)[0])), 2)
         severity = "High" if prediction != "BENIGN" else "Low"
         is_anomaly = 1 if int(anomaly_model.predict(df_input[anomaly_model.feature_names_in_])[0]) == -1 else 0
-        log_prediction(source_ip, prediction, severity, base_risk, "Live Stream", is_anomaly)
+        
+        # XAI logic
+        feature_importance = []
+        if prediction != "BENIGN":
+            diffs = np.abs(X_scaled[0])
+            top_indices = np.argsort(diffs)[-3:][::-1]
+            feature_importance = [model.feature_names_in_[i] for i in top_indices]
+        
+        summary = f"Top Features: {', '.join(feature_importance)}" if feature_importance else "Normal Activity"
+
+        if severity == "High" or base_risk > 0.8:
+            blacklist_ip(source_ip, f"Auto Block: {prediction}")
+
+        log_prediction(source_ip, prediction, severity, base_risk, summary, is_anomaly)
         return jsonify({"status": "ok"})
     except: return jsonify({"status": "err"}), 500
 
 def run_simulation():
-    print("Simulator: Waiting for backend to stabilize (5s)...")
-    time.sleep(5)
+    time.sleep(10)
     try:
-        print("Simulator: Loading traffic samples...")
-        data = pd.read_csv(DATASET_PATH, nrows=300)
+        data = pd.read_csv(DATASET_PATH, nrows=500)
         while True:
             row = data.sample(1).drop("Label", axis=1).iloc[0].to_dict()
             row = {k: float(v) for k, v in row.items()}
             try: requests.post("http://127.0.0.1:5000/predict", json=row, timeout=1)
             except: pass
             time.sleep(4)
-    except Exception as e: print(f"Simulator Error: {e}")
+    except: pass
 
 threading.Thread(target=run_simulation, daemon=True).start()
 
