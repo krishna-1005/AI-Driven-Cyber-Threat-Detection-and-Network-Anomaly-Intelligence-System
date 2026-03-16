@@ -150,6 +150,7 @@ def generate_exec_report(df, stats, live_total):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     top_threats = df[df["Severity"] == "High"]["Attack Type"].value_counts().head(3).to_dict()
     threat_list = "\n".join([f"- {k}: {v} occurrences" for k, v in top_threats.items()])
+    avg_risk = df['Risk Score'].mean() if not df.empty else 0.00
     
     report = f"""
 # SENTINEL AI | EXECUTIVE SECURITY AUDIT
@@ -165,7 +166,7 @@ The most frequent high-severity threats detected were:
 {threat_list if top_threats else "- No high-severity threats detected."}
 
 ## 3. System Health & Performance
-- **Avg Risk Index:** {df['Risk Score'].mean():.2f if not df.empty else 0.00}
+- **Avg Risk Index:** {avg_risk:.2f}
 - **Active IP Blocks:** {len(api_get("blacklist") or [])}
 - **AI Core Confidence:** 98.4% (Ensemble Model)
 
@@ -312,7 +313,7 @@ with st.container():
         st.markdown('<div class="glass-card" style="height: 100%;">', unsafe_allow_html=True)
         st.subheader("📊 Executive Security Posture")
         if not df.empty:
-            avg_risk = df['Risk Score'].mean()
+            avg_risk = df['Risk Score'].mean() if not df.empty else 0.00
             threat_ratio = len(df[df["Severity"] == "High"]) / len(df) if len(df) > 0 else 0
             
             if avg_risk < 0.2 and threat_ratio < 0.05: grade, g_class, g_text = "A", "grade-a", "EXCELLENT: System integrity is optimal."
@@ -325,9 +326,11 @@ with st.container():
             with gc2:
                 st.markdown(f"**Status:** {g_text}")
                 st.markdown(f"*Integrity Score: {(100 - avg_risk*100):.1f}%*")
+                # Generate report content
+                report_content = generate_exec_report(df, stats, live_total)
                 st.download_button(
                     "📥 Download Executive Audit Report",
-                    generate_exec_report(df, stats, live_total),
+                    report_content,
                     file_name=f"Sentinel_Executive_Report_{datetime.now().strftime('%Y%m%d')}.md",
                     mime="text/markdown",
                     use_container_width=True
