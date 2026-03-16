@@ -1,12 +1,19 @@
 #!/bin/bash
 
-echo "Starting Production Flask Backend..."
-# Run backend with gunicorn for stability and lower memory overhead
-gunicorn --bind 0.0.0.0:5000 --chdir AI-Cyber-Threat-Detection/backend app:app --daemon
+# Port mapping for Render
+PORT=${PORT:-10000}
 
-echo "Waiting for backend to initialize..."
-sleep 5
+echo "Starting Production Flask Backend..."
+# Single worker to save memory, no daemon to let Render manage the process
+gunicorn --bind 0.0.0.0:5000 --chdir AI-Cyber-Threat-Detection/backend app:app --workers 1 --worker-class sync --timeout 60 &
+
+echo "Waiting 10s for backend and ML models to load..."
+sleep 10
 
 echo "Starting Streamlit Dashboard..."
-# Streamlit runs on the port Render expects (10000)
-streamlit run AI-Cyber-Threat-Detection/dashboard/dashboard.py --server.port 10000 --server.address 0.0.0.0
+# Streamlit memory optimizations
+streamlit run AI-Cyber-Threat-Detection/dashboard/dashboard.py \
+    --server.port $PORT \
+    --server.address 0.0.0.0 \
+    --client.toolbarMode hidden \
+    --browser.gatherUsageStats false
