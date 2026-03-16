@@ -207,9 +207,9 @@ if 'baseline_count' not in st.session_state:
 
 live_total = max(0, len(df) - st.session_state.baseline_count)
 
-# --- THREE.JS CYBER CORE VISUALIZATION ---
+# --- THREE.JS INTERACTIVE NEURAL MESH ---
 three_js_code = """
-<div id="canvas-container" style="width: 100%; height: 350px; background: transparent; cursor: move; border-radius: 16px; border: 1px solid rgba(88, 166, 255, 0.1); margin-bottom: 25px; overflow: hidden;"></div>
+<div id="canvas-container" style="width: 100%; height: 400px; background: transparent; cursor: crosshair; border-radius: 20px; border: 1px solid rgba(88, 166, 255, 0.15); margin-bottom: 30px; overflow: hidden; box-shadow: 0 0 20px rgba(88, 166, 255, 0.05);"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
     const container = document.getElementById('canvas-container');
@@ -218,66 +218,120 @@ three_js_code = """
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     
     renderer.setSize(container.offsetWidth, container.offsetHeight);
-    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
-    // AI Core Sphere (Neural Nodes)
-    const geometry = new THREE.IcosahedronGeometry(2, 2);
+    const mouse = new THREE.Vector2();
+    const target = new THREE.Vector2();
+
+    // Create Neural Particles
+    const count = 150;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count * 3);
+    
+    for (let i = 0; i < count * 3; i++) {
+        positions[i] = (Math.random() - 0.5) * 10;
+        velocities[i] = (Math.random() - 0.5) * 0.02;
+    }
+    
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    
     const material = new THREE.PointsMaterial({
         color: 0x58a6ff,
-        size: 0.05,
+        size: 0.08,
         transparent: true,
-        opacity: 0.8
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending
     });
-    const sphere = new THREE.Points(geometry, material);
-    scene.add(sphere);
 
-    // Inner Core Glow
-    const innerGeo = new THREE.SphereGeometry(1.2, 32, 32);
-    const innerMat = new THREE.MeshBasicMaterial({
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
+
+    // Create Connections (Lines)
+    const lineMaterial = new THREE.LineBasicMaterial({
         color: 0x58a6ff,
         transparent: true,
-        opacity: 0.1,
-        wireframe: true
+        opacity: 0.15,
+        blending: THREE.AdditiveBlending
     });
-    const innerSphere = new THREE.Mesh(innerGeo, innerMat);
-    scene.add(innerSphere);
 
-    // Background Particle Field (Traffic Data)
-    const particlesGeometry = new THREE.BufferGeometry();
-    const posArray = new Float32Array(2000 * 3);
-    for(let i=0; i < 2000 * 3; i++) {
-        posArray[i] = (Math.random() - 0.5) * 15;
+    let lineMesh;
+
+    function updateLines() {
+        if (lineMesh) scene.remove(lineMesh);
+        
+        const lineGeometry = new THREE.BufferGeometry();
+        const linePositions = [];
+        const pos = points.geometry.attributes.position.array;
+        
+        for (let i = 0; i < count; i++) {
+            for (let j = i + 1; j < count; j++) {
+                const dx = pos[i * 3] - pos[j * 3];
+                const dy = pos[i * 3 + 1] - pos[j * 3 + 1];
+                const dz = pos[i * 3 + 2] - pos[j * 3 + 2];
+                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                
+                if (dist < 2.5) {
+                    linePositions.push(pos[i*3], pos[i*3+1], pos[i*3+2]);
+                    linePositions.push(pos[j*3], pos[j*3+1], pos[j*3+2]);
+                }
+            }
+        }
+        
+        lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        lineMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
+        scene.add(lineMesh);
     }
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-    const particlesMaterial = new THREE.PointsMaterial({
-        size: 0.005,
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.3
-    });
-    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particlesMesh);
 
-    camera.position.z = 5;
+    camera.position.z = 6;
+
+    container.addEventListener('mousemove', (event) => {
+        const rect = container.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / container.offsetWidth) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / container.offsetHeight) * 2 + 1;
+    });
 
     function animate() {
         requestAnimationFrame(animate);
-        sphere.rotation.y += 0.005;
-        sphere.rotation.x += 0.002;
-        innerSphere.rotation.y -= 0.003;
-        particlesMesh.rotation.y += 0.0005;
         
-        // Pulse Effect
-        const time = Date.now() * 0.001;
-        innerSphere.scale.set(
-            1 + Math.sin(time) * 0.1,
-            1 + Math.sin(time) * 0.1,
-            1 + Math.sin(time) * 0.1
-        );
+        const pos = points.geometry.attributes.position.array;
+        target.x += (mouse.x - target.x) * 0.05;
+        target.y += (mouse.y - target.y) * 0.05;
+
+        for (let i = 0; i < count; i++) {
+            // Update base position
+            pos[i * 3] += velocities[i * 3];
+            pos[i * 3 + 1] += velocities[i * 3 + 1];
+            pos[i * 3 + 2] += velocities[i * 3 + 2];
+
+            // Bounce off boundaries
+            if (Math.abs(pos[i * 3]) > 5) velocities[i * 3] *= -1;
+            if (Math.abs(pos[i * 3 + 1]) > 5) velocities[i * 3 + 1] *= -1;
+            if (Math.abs(pos[i * 3 + 2]) > 5) velocities[i * 3 + 2] *= -1;
+
+            // Mouse Interaction (Distortion)
+            const dx = pos[i * 3] - target.x * 5;
+            const dy = pos[i * 3 + 1] - target.y * 3;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist < 2) {
+                pos[i * 3] += dx * 0.02;
+                pos[i * 3 + 1] += dy * 0.02;
+            }
+        }
         
+        points.geometry.attributes.position.needsUpdate = true;
+        updateLines();
+        
+        // Gentle scene rotation
+        scene.rotation.y += 0.001;
+        scene.rotation.x = target.y * 0.2;
+        scene.rotation.y = target.x * 0.5;
+
         renderer.render(scene, camera);
     }
+    
     animate();
 
     window.addEventListener('resize', () => {
@@ -288,7 +342,7 @@ three_js_code = """
 </script>
 """
 import streamlit.components.v1 as components
-components.html(three_js_code, height=360)
+components.html(three_js_code, height=410)
 
 # Demo fallback if API returns no data
 if df.empty:
