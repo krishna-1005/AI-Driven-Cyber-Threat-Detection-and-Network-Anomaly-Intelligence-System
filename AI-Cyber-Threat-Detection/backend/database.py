@@ -40,6 +40,14 @@ def init_db():
         """)
 
         conn.commit()
+
+        # Migration: Ensure review_status column exists for HITL features
+        try:
+            cursor.execute("ALTER TABLE logs ADD COLUMN review_status TEXT DEFAULT 'Pending'")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass # Column already exists
+
         conn.close()
 
         print("Database initialized successfully")

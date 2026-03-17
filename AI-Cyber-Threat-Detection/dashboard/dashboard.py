@@ -336,6 +336,12 @@ logs_data = api_get("logs") or []
 bl_data = api_get("blacklist") or []
 df = pd.DataFrame(logs_data, columns=["ID", "Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly", "Review Status"])
 
+# Fallback: If live session dataframe is empty but we have historical logs, use them for the topology/forecast
+if df.empty and stats["total_logs"] > 0:
+    # Try fetching a slightly larger batch to populate charts
+    historical_logs = api_get("logs") or []
+    df = pd.DataFrame(historical_logs, columns=["ID", "Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly", "Review Status"])
+
 if 'baseline' not in st.session_state:
     st.session_state.baseline = stats["total_logs"]
     st.session_state.start_time = datetime.now().strftime("%H:%M:%S")
