@@ -83,33 +83,50 @@ st.markdown("""
     
     /* Sidebar Styling */
     section[data-testid="stSidebar"] { 
-        background: rgba(13, 17, 23, 0.7) !important; 
+        background: rgba(13, 17, 23, 0.8) !important; 
         border-right: 1px solid rgba(88, 166, 255, 0.15); 
-        backdrop-filter: blur(20px); 
+        backdrop-filter: blur(25px); 
+        top: 60px !important; /* Push below navbar */
+        height: calc(100vh - 60px) !important;
     }
     
-    /* Fixed Navbar */
+    /* Navbar Styling */
     .navbar {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 60px;
-        background: rgba(13, 17, 23, 0.85);
+        background: rgba(10, 15, 25, 0.95);
         backdrop-filter: blur(15px);
         border-bottom: 1px solid rgba(88, 166, 255, 0.2);
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 0 2rem;
-        z-index: 10000;
+        z-index: 1000000; /* Ensure it stays on top */
     }
-    .nav-logo { font-size: 1.6rem; font-weight: 900; letter-spacing: -1px; }
-    .nav-logo span { color: #58a6ff; }
+    .nav-logo { font-size: 1.8rem; font-weight: 900; letter-spacing: -1.5px; display: flex; align-items: center; }
+    .nav-logo span { color: #58a6ff; margin-left: 2px; }
     .nav-info { color: #8b949e; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; text-align: right; }
     
-    /* Adjust main content padding */
-    .stMainBlockContainer { padding-top: 5rem !important; }
+    /* Streamlit Header Overrides */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        height: 60px !important;
+        z-index: 1000001 !important; /* Above navbar for interaction */
+    }
+    
+    /* Main Content Adjustments */
+    .stMainBlockContainer { 
+        padding-top: 5.5rem !important; 
+        max-width: 1200px !important;
+    }
+    
+    /* Sidebar Toggle Button */
+    button[kind="header"] {
+        color: #58a6ff !important;
+    }
     
     /* Typography */
     h1, h2, h3 { color: #58a6ff !important; font-weight: 700; border: none; }
