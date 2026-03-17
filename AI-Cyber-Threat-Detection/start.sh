@@ -15,5 +15,5 @@ echo "Starting Streamlit Dashboard..."
 streamlit run AI-Cyber-Threat-Detection/dashboard/dashboard.py \
     --server.port $PORT \
     --server.address 0.0.0.0 \
-    --client.toolbarMode hidden \
+    --client.toolbarMode minimal \
     --browser.gatherUsageStats false
