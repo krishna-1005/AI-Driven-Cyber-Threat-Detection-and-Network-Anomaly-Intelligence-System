@@ -132,17 +132,25 @@ st.markdown("""
     h1, h2, h3 { color: #58a6ff !important; font-weight: 700; border: none; }
     .hero-title { font-size: 2.5rem; background: linear-gradient(90deg, #58a6ff, #1f6feb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
     
-    /* Glassmorphism Containers */
-    .glass-card { 
+    /* Glassmorphism Logic */
+    [data-testid="stMetric"], .stMetric {
+        background: rgba(22, 27, 34, 0.4) !important; 
+        padding: 20px !important; 
+        border-radius: 20px !important; 
+        border: 1px solid rgba(88, 166, 255, 0.15) !important; 
+        backdrop-filter: blur(12px) !important;
+        transition: transform 0.3s ease;
+    }
+    [data-testid="stMetric"]:hover { border: 1px solid rgba(88, 166, 255, 0.3) !important; transform: translateY(-3px); }
+
+    .glass-panel {
         background: rgba(22, 27, 34, 0.4); 
         padding: 24px; 
         border-radius: 20px; 
         border: 1px solid rgba(88, 166, 255, 0.15); 
         backdrop-filter: blur(12px); 
-        margin-bottom: 20px; 
-        transition: transform 0.3s ease;
+        margin-bottom: 20px;
     }
-    .glass-card:hover { border: 1px solid rgba(88, 166, 255, 0.3); transform: translateY(-3px); }
     
     /* Metrics */
     div[data-testid="stMetricValue"] { 
@@ -341,7 +349,7 @@ st.markdown(f"**Holistic Network Monitoring** | Session Active: {st.session_stat
 with st.container():
     c1, c2 = st.columns([2, 1])
     with c1:
-        st.markdown('<div class="glass-card" style="height: 100%;">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
         st.subheader("🛡️ System Health & Integrity")
         if not df.empty:
             avg_risk = df['Risk Score'].mean() if not df.empty else 0.00
@@ -371,7 +379,7 @@ with st.container():
         st.markdown('</div>', unsafe_allow_html=True)
     
     with c2:
-        st.markdown('<div class="glass-card" style="height: 100%;">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
         st.subheader("🤖 AI Analyst")
         if not df.empty:
             latest = df.iloc[0]
@@ -384,31 +392,23 @@ with st.container():
 # --- LEVEL 2: LIVE SYSTEM VITALS ---
 m1, m2, m3, m4 = st.columns(4)
 with m1:
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     st.metric("Total Flows", f"{live_total}", delta=f"{stats['total_logs']} Overall", help="Total network packets processed in current session.")
-    st.markdown('</div>', unsafe_allow_html=True)
 with m2:
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     anomalies_count = len(df[df["Is Anomaly"] == 1])
     st.metric("AI Anomalies", anomalies_count, delta="Detected" if anomalies_count > 0 else "Clear", delta_color="inverse", help="Behavioral deviations detected by Isolation Forest.")
-    st.markdown('</div>', unsafe_allow_html=True)
 with m3:
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     threats_count = len(df[df["Severity"] == "High"])
     st.metric("Active Threats", threats_count, delta="Blocked" if auto_def and threats_count > 0 else "Monitoring", delta_color="normal", help="High-severity attacks identified by Random Forest.")
-    st.markdown('</div>', unsafe_allow_html=True)
 with m4:
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     avg_risk = df['Risk Score'].mean() if not df.empty else 0.00
     st.metric("System Risk Index", f"{avg_risk:.2f}", delta=f"{'ELEVATED' if avg_risk > 0.5 else 'NORMAL'}", delta_color="inverse", help="Average confidence score of detected threats.")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # --- LEVEL 3: INTELLIGENCE OVERVIEW ---
 st.subheader("📊 Visual Intelligence")
 ic1, ic2 = st.columns([2, 1])
 
 with ic1:
-    st.markdown('<div class="glass-card" style="height: 100%;">', unsafe_allow_html=True)
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
     st.subheader("📈 Risk Evolution (Real-time)")
     if not df.empty:
         # Risk trend over the last 100 events
@@ -433,7 +433,7 @@ with ic1:
     st.markdown('</div>', unsafe_allow_html=True)
 
 with ic2:
-    st.markdown('<div class="glass-card" style="height: 100%;">', unsafe_allow_html=True)
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
     st.subheader("🎯 Attack Vector")
     if not df.empty:
         fig = px.pie(df, names='Attack Type', hole=0.6, color_discrete_sequence=px.colors.sequential.Blues_r)
