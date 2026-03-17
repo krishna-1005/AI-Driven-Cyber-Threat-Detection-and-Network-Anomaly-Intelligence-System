@@ -179,6 +179,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- UTILITIES ---
+def get_coords(ip):
+    # Simulated geolocation for hackathon visual impact
+    # Maps certain IP prefixes to regions, others random
+    if "MALICIOUS" in str(ip): return random.uniform(40, 60), random.uniform(10, 50) # Europe/Asia
+    seed = sum(ord(c) for k, c in enumerate(str(ip)))
+    random.seed(seed)
+    # Target protected node is at 20, 78 (India approx)
+    return random.uniform(-40, 60), random.uniform(-120, 140)
+
 # --- AI ANALYST LOGIC ---
 def get_ai_advice(attack_type, summary):
     advice_map = {
@@ -386,7 +396,107 @@ with m4:
     st.metric("System Risk Index", f"{avg_risk:.2f}", delta=f"{'ELEVATED' if avg_risk > 0.5 else 'NORMAL'}", delta_color="inverse", help="Average confidence score of detected threats.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LEVEL 3: REAL-TIME OPERATION ---
+# --- LEVEL 3: INTELLIGENCE VISUALIZER ---
+st.subheader("🌐 Visual Intelligence Core")
+ic1, ic2 = st.columns([2, 1])
+
+with ic1:
+    st.markdown('<div class="glass-card" style="padding:0; overflow:hidden;">', unsafe_allow_html=True)
+    if not df.empty:
+        # Prepare Map Data
+        threats_only = df[df["Severity"] == "High"].head(20)
+        
+        fig = go.Figure()
+        
+        # Protected Node (Home)
+        fig.add_trace(go.Scattergeo(
+            lat=[20.5], lon=[78.9],
+            mode='markers',
+            marker=dict(size=15, color='#58a6ff', symbol='diamond', line=dict(width=2, color='white')),
+            name='Protected Node'
+        ))
+        
+        # Attack Sources
+        for _, row in threats_only.iterrows():
+            lat, lon = get_coords(row["Source IP"])
+            
+            # Attack Line (Arc)
+            fig.add_trace(go.Scattergeo(
+                lat=[lat, 20.5],
+                lon=[lon, 78.9],
+                mode='lines',
+                line=dict(width=1, color='#f85149'),
+                opacity=0.4,
+                showlegend=False
+            ))
+            
+            # Attacker Marker
+            fig.add_trace(go.Scattergeo(
+                lat=[lat], lon=[lon],
+                mode='markers',
+                marker=dict(size=8, color='#f85149', opacity=0.8),
+                name=f'Threat: {row["Source IP"]}',
+                text=f'Type: {row["Attack Type"]}'
+            ))
+
+        fig.update_geos(
+            projection_type="orthographic",
+            showcoastlines=True, coastlinecolor="rgba(88, 166, 255, 0.2)",
+            showland=True, landcolor="rgba(13, 17, 23, 0.8)",
+            showocean=True, oceancolor="rgba(10, 25, 47, 0.5)",
+            showlakes=False,
+            bgcolor='rgba(0,0,0,0)',
+            resolution=50
+        )
+        
+        fig.update_layout(
+            height=400, margin=dict(l=0,r=0,t=0,b=0),
+            paper_bgcolor='rgba(0,0,0,0)',
+            showlegend=False
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Passive sensors active. Waiting for global telemetry...")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with ic2:
+    st.markdown('<div class="glass-card" style="height: 100%;">', unsafe_allow_html=True)
+    st.subheader("🔮 60-Min Forecast")
+    forecast_data = sys_data.get("threat_prediction_trend", [0.2]*10)
+    
+    # Create forecast chart
+    fig = go.Figure()
+    # Historical (simulated for visual)
+    fig.add_trace(go.Scatter(
+        y=[random.uniform(0.1, 0.4) for _ in range(5)], 
+        mode='lines', name='Actual',
+        line=dict(color='#58a6ff', width=2)
+    ))
+    # Forecast
+    fig.add_trace(go.Scatter(
+        x=[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+        y=[0.3] + forecast_data,
+        mode='lines', name='Predicted',
+        line=dict(color='#f85149', width=3, dash='dot')
+    ))
+    
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)', 
+        plot_bgcolor='rgba(0,0,0,0)',
+        font_color="#8b949e", 
+        margin=dict(t=10,b=0,l=0,r=0),
+        xaxis_showgrid=False,
+        yaxis_showgrid=True,
+        yaxis_gridcolor='rgba(88, 166, 255, 0.1)',
+        yaxis_range=[0, 1.1],
+        height=300,
+        showlegend=False
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown('<p style="font-size:0.7rem; color:#8b949e; text-align:center;">Neural Projection based on current traffic velocity.</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- LEVEL 4: REAL-TIME OPERATION ---
 st.subheader("📡 Live Operational Stream")
 lc1, lc2 = st.columns([2, 1])
 
