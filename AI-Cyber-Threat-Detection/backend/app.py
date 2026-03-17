@@ -7,7 +7,7 @@ import pandas as pd
 import threading
 import time
 import requests
-from database import init_db, log_prediction, get_logs, cleanup_db, is_blacklisted, blacklist_ip, get_blacklist, get_log_count
+from database import init_db, log_prediction, get_logs, cleanup_db, is_blacklisted, blacklist_ip, get_blacklist, get_log_count, update_review_status
 
 app = Flask(__name__)
 init_db()
@@ -57,6 +57,16 @@ def fetch_logs(): return jsonify(get_logs(limit=100))
 
 @app.route("/blacklist", methods=["GET"])
 def fetch_blacklist(): return jsonify(get_blacklist())
+
+@app.route("/review", methods=["POST"])
+def review_log():
+    data = request.json
+    log_id = data.get("id")
+    status = data.get("status")
+    if log_id and status:
+        if update_review_status(log_id, status):
+            return jsonify({"status": "ok"})
+    return jsonify({"status": "err"}), 400
 
 @app.route("/defense", methods=["GET", "POST"])
 def defense_control():

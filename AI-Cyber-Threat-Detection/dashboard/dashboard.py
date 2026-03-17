@@ -334,12 +334,22 @@ components.html(bg_code, height=0)
 stats = api_get("stats") or {"total_logs": 0}
 logs_data = api_get("logs") or []
 bl_data = api_get("blacklist") or []
-df = pd.DataFrame(logs_data, columns=["Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly"])
+df = pd.DataFrame(logs_data, columns=["ID", "Time", "Source IP", "Attack Type", "Severity", "Risk Score", "Summary", "Is Anomaly", "Review Status"])
 
 if 'baseline' not in st.session_state:
     st.session_state.baseline = stats["total_logs"]
     st.session_state.start_time = datetime.now().strftime("%H:%M:%S")
 live_total = max(0, stats["total_logs"] - st.session_state.baseline)
+
+# Calculate Threat Velocity (Attacks per last 5 minutes)
+if not df.empty:
+    try:
+        df['dt'] = pd.to_datetime(df['Time'])
+        recent_cutoff = datetime.now() - pd.Timedelta(minutes=5)
+        # Handle timezone issues if any, otherwise simple compare
+        velocity = len(df[(df['Severity'] == 'High') & (df['dt'] > recent_cutoff)])
+    except: velocity = 0
+else: velocity = 0
 
 # --- MAIN DASHBOARD ---
 st.markdown('<h1 class="hero-title">🛡️ Sentinel Intelligence Dashboard</h1>', unsafe_allow_html=True)
@@ -384,7 +394,30 @@ with st.container():
         if not df.empty:
             latest = df.iloc[0]
             advice = get_ai_advice(latest["Attack Type"], latest["Summary"])
-            st.markdown(f'<div class="analyst-bubble" style="font-size:0.9rem;">"{advice}"</div>', unsafe_allow_html=True)
+            
+            # AI Confidence Gauge
+            conf_score = latest["Risk Score"] * 100
+            fig_gauge = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = conf_score,
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                title = {'text': "Model Certainty", 'font': {'size': 14, 'color': '#8b949e'}},
+                gauge = {
+                    'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#8b949e"},
+                    'bar': {'color': "#58a6ff"},
+                    'bgcolor': "rgba(0,0,0,0)",
+                    'borderwidth': 2,
+                    'bordercolor': "rgba(88, 166, 255, 0.2)",
+                    'steps': [
+                        {'range': [0, 50], 'color': 'rgba(248, 81, 73, 0.1)'},
+                        {'range': [50, 80], 'color': 'rgba(210, 153, 34, 0.1)'},
+                        {'range': [80, 100], 'color': 'rgba(63, 185, 80, 0.1)'}
+                    ],
+                }
+            ))
+            fig_gauge.update_layout(height=180, margin=dict(l=10, r=10, t=40, b=10), paper_bgcolor='rgba(0,0,0,0)', font={'color': "white"})
+            st.plotly_chart(fig_gauge, use_container_width=True)
+            st.markdown(f'<div class="analyst-bubble" style="font-size:0.85rem; margin-top:-20px;">"{advice}"</div>', unsafe_allow_html=True)
         else:
             st.markdown('<div class="analyst-bubble">"System standby. Monitoring for neural patterns..."</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -397,8 +430,7 @@ with m2:
     anomalies_count = len(df[df["Is Anomaly"] == 1])
     st.metric("AI Anomalies", anomalies_count, delta="Detected" if anomalies_count > 0 else "Clear", delta_color="inverse", help="Behavioral deviations detected by Isolation Forest.")
 with m3:
-    threats_count = len(df[df["Severity"] == "High"])
-    st.metric("Active Threats", threats_count, delta="Blocked" if auto_def and threats_count > 0 else "Monitoring", delta_color="normal", help="High-severity attacks identified by Random Forest.")
+    st.metric("Threat Velocity", f"{velocity} p/m", delta="High Volume" if velocity > 5 else "Normal", delta_color="inverse", help="Frequency of high-severity threats detected in the last 5 minutes.")
 with m4:
     avg_risk = df['Risk Score'].mean() if not df.empty else 0.00
     st.metric("System Risk Index", f"{avg_risk:.2f}", delta=f"{'ELEVATED' if avg_risk > 0.5 else 'NORMAL'}", delta_color="inverse", help="Average confidence score of detected threats.")
@@ -479,20 +511,35 @@ with lc2:
 tab1, tab2, tab3 = st.tabs(["🕵️ Neural Forensics", "🛡️ Network Defense", "📜 Master Audit Logs"])
 
 with tab1:
-    st.subheader("AI Behavioral Reasonings")
+    st.subheader("AI Behavioral Reasonings & Human Validation")
     anomalies = df[df["Is Anomaly"] == 1].head(10)
     if not anomalies.empty:
         for _, row in anomalies.iterrows():
-            st.markdown(f"""
-            <div class="forensic-card">
-                <span class="badge badge-high">Anomaly Detected</span> 
-                <strong>{row['Source IP']}</strong> | {row['Time']}
-                <br><br>
-                <p style="color:#8b949e; font-size:0.9rem;">AI Logic Analysis:</p>
-                <code>{row['Summary']}</code>
-                <div style="margin-top:10px; font-size:0.8rem; color:#58a6ff;">Confidence Score: {(row['Risk Score']*100):.1f}%</div>
-            </div>
-            """, unsafe_allow_html=True)
+            with st.container():
+                # Display Card
+                status_color = "#3fb950" if row['Review Status'] == 'Verified' else "#f85149" if row['Review Status'] == 'Dismissed' else "#58a6ff"
+                st.markdown(f"""
+                <div class="forensic-card" style="border-left: 5px solid {status_color};">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span><span class="badge badge-high">Anomaly Detected</span> <strong>{row['Source IP']}</strong></span>
+                        <span style="color: {status_color}; font-weight: bold; font-size: 0.8rem;">{row['Review Status']}</span>
+                    </div>
+                    <p style="margin-top:10px; color:#8b949e; font-size:0.9rem;">AI Logic Analysis:</p>
+                    <code>{row['Summary']}</code>
+                    <div style="margin-top:10px; font-size:0.8rem; color:#58a6ff;">Confidence Score: {(row['Risk Score']*100):.1f}% | Time: {row['Time']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # HITL Buttons
+                if row['Review Status'] == 'Pending':
+                    bc1, bc2, _ = st.columns([1, 1, 4])
+                    if bc1.button("✅ Verify", key=f"v_{row['ID']}"):
+                        api_post("review", {"id": int(row['ID']), "status": "Verified"})
+                        st.rerun()
+                    if bc2.button("❌ Dismiss", key=f"d_{row['ID']}"):
+                        api_post("review", {"id": int(row['ID']), "status": "Dismissed"})
+                        st.rerun()
+                st.write("---")
     else: 
         st.success("Clean Behavioral Profile. No anomalies detected in current buffer.")
 

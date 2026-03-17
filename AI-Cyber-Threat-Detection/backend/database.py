@@ -25,7 +25,8 @@ def init_db():
             severity TEXT,
             risk_score REAL,
             summary TEXT,
-            is_anomaly INTEGER DEFAULT 0
+            is_anomaly INTEGER DEFAULT 0,
+            review_status TEXT DEFAULT 'Pending'
         )
         """)
 
@@ -143,7 +144,7 @@ def get_logs(limit=1000):
     cursor = conn.cursor()
 
     cursor.execute("""
-    SELECT timestamp, source_ip, attack_type, severity, risk_score, summary, is_anomaly
+    SELECT id, timestamp, source_ip, attack_type, severity, risk_score, summary, is_anomaly, review_status
     FROM logs
     ORDER BY id DESC
     LIMIT ?
@@ -154,6 +155,19 @@ def get_logs(limit=1000):
     conn.close()
 
     return rows
+
+
+def update_review_status(log_id, status):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE logs SET review_status = ? WHERE id = ?", (status, log_id))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Review Update Error: {e}")
+        return False
 
 
 # ----------------------------------------------------
