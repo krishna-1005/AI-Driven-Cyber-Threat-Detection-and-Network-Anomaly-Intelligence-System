@@ -320,12 +320,12 @@ live_total = max(0, stats["total_logs"] - st.session_state.baseline)
 st.markdown('<h1 class="hero-title">🛡️ Sentinel Intelligence Dashboard</h1>', unsafe_allow_html=True)
 st.markdown(f"**Holistic Network Monitoring** | Session Active: {st.session_state.start_time}")
 
-# --- EXECUTIVE SCORECARD ---
+# --- LEVEL 1: SYSTEM HEALTH OVERVIEW ---
 with st.container():
-    c1, c2 = st.columns([3, 1])
+    c1, c2 = st.columns([2, 1])
     with c1:
         st.markdown('<div class="glass-card" style="height: 100%;">', unsafe_allow_html=True)
-        st.subheader("📊 Executive Security Posture")
+        st.subheader("🛡️ System Health & Integrity")
         if not df.empty:
             avg_risk = df['Risk Score'].mean() if not df.empty else 0.00
             threat_ratio = len(df[df["Severity"] == "High"]) / len(df) if len(df) > 0 else 0
@@ -334,108 +334,88 @@ with st.container():
             elif avg_risk < 0.5: grade, g_class, g_text = "B", "grade-b", "STABLE: Minor anomalies detected, baseline holding."
             else: grade, g_class, g_text = "C", "grade-c", "CRITICAL: High risk detected. Immediate action required."
             
-            gc1, gc2 = st.columns([1, 4])
+            gc1, gc2 = st.columns([1, 3])
             with gc1:
                 st.markdown(f'<div class="grade-badge {g_class}">{grade}</div>', unsafe_allow_html=True)
             with gc2:
+                st.markdown(f"**Security Grade:** {grade}")
                 st.markdown(f"**Status:** {g_text}")
-                st.markdown(f"*Integrity Score: {(100 - avg_risk*100):.1f}%*")
                 # Generate report content
                 report_content = generate_exec_report(df, stats, live_total)
                 st.download_button(
-                    "📥 Download Executive Audit Report",
+                    "📥 Export Audit Report",
                     report_content,
-                    file_name=f"Sentinel_Executive_Report_{datetime.now().strftime('%Y%m%d')}.md",
+                    file_name=f"Sentinel_Audit_{datetime.now().strftime('%Y%m%d')}.md",
                     mime="text/markdown",
                     use_container_width=True
                 )
         else:
-            st.info("Calculating initial posture... awaiting network telemetry.")
+            st.info("Calibrating sensors... awaiting telemetry.")
         st.markdown('</div>', unsafe_allow_html=True)
     
     with c2:
         st.markdown('<div class="glass-card" style="height: 100%;">', unsafe_allow_html=True)
-        st.subheader("🤖 AI Core")
+        st.subheader("🤖 AI Analyst")
         if not df.empty:
             latest = df.iloc[0]
             advice = get_ai_advice(latest["Attack Type"], latest["Summary"])
-            st.markdown(f'<div class="analyst-bubble">"{advice}"</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="analyst-bubble" style="font-size:0.9rem;">"{advice}"</div>', unsafe_allow_html=True)
         else:
             st.markdown('<div class="analyst-bubble">"System standby. Monitoring for neural patterns..."</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- HERO METRICS ---
+# --- LEVEL 2: LIVE SYSTEM VITALS ---
 m1, m2, m3, m4 = st.columns(4)
 with m1:
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.metric("Total Flows", f"{live_total}", delta=f"{stats['total_logs']} Overall")
+    st.metric("Total Flows", f"{live_total}", delta=f"{stats['total_logs']} Overall", help="Total network packets processed in current session.")
     st.markdown('</div>', unsafe_allow_html=True)
 with m2:
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     anomalies_count = len(df[df["Is Anomaly"] == 1])
-    st.metric("AI Anomalies", anomalies_count, delta="Detected" if anomalies_count > 0 else "Clear", delta_color="inverse")
+    st.metric("AI Anomalies", anomalies_count, delta="Detected" if anomalies_count > 0 else "Clear", delta_color="inverse", help="Behavioral deviations detected by Isolation Forest.")
     st.markdown('</div>', unsafe_allow_html=True)
 with m3:
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     threats_count = len(df[df["Severity"] == "High"])
-    st.metric("Active Threats", threats_count, delta="Blocked" if auto_def and threats_count > 0 else None, delta_color="normal")
+    st.metric("Active Threats", threats_count, delta="Blocked" if auto_def and threats_count > 0 else "Monitoring", delta_color="normal", help="High-severity attacks identified by Random Forest.")
     st.markdown('</div>', unsafe_allow_html=True)
 with m4:
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     avg_risk = df['Risk Score'].mean() if not df.empty else 0.00
-    st.metric("System Risk Index", f"{avg_risk:.2f}", delta=f"{'ELEVATED' if avg_risk > 0.5 else 'NORMAL'}", delta_color="inverse")
+    st.metric("System Risk Index", f"{avg_risk:.2f}", delta=f"{'ELEVATED' if avg_risk > 0.5 else 'NORMAL'}", delta_color="inverse", help="Average confidence score of detected threats.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LIVE ACTIVITY ---
-st.write("")
-st.subheader("📡 Real-time Neural Activity Stream")
-if not df.empty:
-    # Stylized Dataframe
-    display_df = df.head(10).copy()
-    st.dataframe(display_df[["Time", "Source IP", "Attack Type", "Severity", "Risk Score"]], use_container_width=True, hide_index=True)
-else: 
-    st.info("Passive reconnaissance in progress... awaiting network packets.")
+# --- LEVEL 3: REAL-TIME OPERATION ---
+st.subheader("📡 Live Operational Stream")
+lc1, lc2 = st.columns([2, 1])
 
-# --- ANALYTICS TABS ---
-tab1, tab2, tab3, tab4 = st.tabs(["📊 Threat Intelligence", "🕵️ Neural Forensics", "🛡️ Automated Mitigation", "📜 Event Logs"])
+with lc1:
+    if not df.empty:
+        # Stylized Dataframe
+        display_df = df.head(10).copy()
+        st.dataframe(display_df[["Time", "Source IP", "Attack Type", "Severity", "Risk Score"]], use_container_width=True, hide_index=True)
+    else: 
+        st.info("Passive reconnaissance in progress... awaiting packets.")
+
+with lc2:
+    if not df.empty:
+        fig = px.pie(df, names='Attack Type', hole=0.6, color_discrete_sequence=px.colors.sequential.Blues_r)
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color="white", 
+            margin=dict(t=0,b=0,l=0,r=0),
+            showlegend=False,
+            height=200
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else: st.info("Awaiting traffic topology...")
+
+# --- LEVEL 4: ADVANCED ANALYSIS ---
+tab1, tab2, tab3 = st.tabs(["🕵️ Neural Forensics", "🛡️ Network Defense", "📜 Master Audit Logs"])
 
 with tab1:
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        st.subheader("Threat Topology")
-        if not df.empty:
-            fig = px.pie(df, names='Attack Type', hole=0.6, color_discrete_sequence=px.colors.sequential.Blues_r)
-            fig.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)', 
-                plot_bgcolor='rgba(0,0,0,0)',
-                font_color="white", 
-                margin=dict(t=0,b=0,l=0,r=0),
-                showlegend=False
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else: st.info("Insufficient data for topology.")
-    
-    with c2:
-        st.subheader("📈 Risk Evolution (Real-time)")
-        if not df.empty:
-            # Risk trend over the last 100 events
-            trend_df = df.iloc[::-1].tail(100) # Latest 100 in order
-            fig = px.area(trend_df, x=trend_df.index, y='Risk Score', color_discrete_sequence=['#58a6ff'])
-            fig.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)', 
-                plot_bgcolor='rgba(0,0,0,0)',
-                font_color="#8b949e", 
-                margin=dict(t=30,b=0,l=0,r=0),
-                xaxis_showgrid=False,
-                yaxis_showgrid=True,
-                yaxis_gridcolor='rgba(88, 166, 255, 0.1)',
-                yaxis_range=[0, 1.1]
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Calibrating risk sensors...")
-
-with tab2:
     st.subheader("AI Behavioral Reasonings")
     anomalies = df[df["Is Anomaly"] == 1].head(10)
     if not anomalies.empty:
@@ -453,17 +433,17 @@ with tab2:
     else: 
         st.success("Clean Behavioral Profile. No anomalies detected in current buffer.")
 
-with tab3:
-    st.subheader("Network Containment")
+with tab2:
+    st.subheader("Automated Perimeter Containment")
     if bl_data: 
         st.table(pd.DataFrame(bl_data, columns=["Blocked IP", "Reason", "Timestamp"]).head(15))
     else: 
         st.info("Perimeter Intact. No active IP blocks.")
 
-with tab4:
-    st.subheader("Master Audit Log")
+with tab3:
+    st.subheader("Full Session History")
     st.dataframe(df, use_container_width=True, hide_index=True)
-    st.download_button("📥 Export Forensic Audit", df.to_csv(index=False).encode('utf-8'), "sentinel_audit.csv", "text/csv")
+    st.download_button("📥 Export Full Data (CSV)", df.to_csv(index=False).encode('utf-8'), "sentinel_full_audit.csv", "text/csv")
 
 # --- FOOTER ---
 st.divider()
